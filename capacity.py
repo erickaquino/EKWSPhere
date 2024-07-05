@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from mangum import Mangum
 
 app = FastAPI()
+handler = Mangum(app)
 
 
 class DataModel(BaseModel):
     data: str
-
 
 
 @app.get("/")
