@@ -92,6 +92,7 @@ async def async_main(field):
     data = [item[field] for item in rest_api_results['items']]
     print(data)
 
+
 if __name__ == "__main__":
     response = input('Query to run: ')
     asyncio.run(run_query(response))
