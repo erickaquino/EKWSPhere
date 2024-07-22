@@ -6,18 +6,32 @@ celigoUrlFlow = 'http://127.0.0.1:8000/runCeligoFlow'
 url ="http://127.0.0.1:8000/getToken"
 ship_confirm_url = "http://127.0.0.1:8000/getOrders"
 ship_confirm_url_specific = "http://127.0.0.1:8000/getShipmentConfirmation/specific"
+# JONES_ROAD myjson = {
+#     'client_secret': 'fqju**J@U)N^d}`q8tQ',
+#     'client_id': 'juststeven.capacity.client'
+# }
+
+# JONES_ROAD shipConfirmPayload = {
+#     "key": "CD343BFA-3109-44D6-A4CE-63313F98B8C1",
+#     "start_date": "2024-07-01",
+#     "end_date": "2024-07-01",
+#     "token": None,
+#     "max_batches": 24
+# }
+
 myjson = {
-    'client_secret': 'fqju**J@U)N^d}`q8tQ',
-    'client_id': 'juststeven.capacity.client'
+    'client_secret': '*u6d8ev$0B{qL8B',
+    'client_id': 'lysecomm.capacity.client'
 }
 
 shipConfirmPayload = {
-    "key": "CD343BFA-3109-44D6-A4CE-63313F98B8C1",
+    "key": "EDAE07E5-9710-4224-BD37-F95CF39A7151",
     "start_date": "2024-07-01",
-    "end_date": "2024-07-01",
+    "end_date": "2024-07-2",
     "token": None,
-    "max_batches": 24
+    "max_batches": 6
 }
+
 
 specificOrderPayload = {
     "key": "CD343BFA-3109-44D6-A4CE-63313F98B8C1",
@@ -46,14 +60,14 @@ celigoFlowPayload = {
     'flow_id': '66819994e4787783082087d7'
 }
 
-#token = requests.post(url,json=myjson).json()['access_token']
-#print(token)
+token = requests.post(url,json=myjson).json()['access_token']
+print(token)
 
-#if token != "":
-    # shipConfirmPayload['token'] = token
+if token != "":
+     shipConfirmPayload['token'] = token
     # print(shipConfirmPayload)
-    # ship_confirm_data = requests.post(ship_confirm_url,json=shipConfirmPayload).json()
-    # print(ship_confirm_data)
+     ship_confirm_data = requests.post(ship_confirm_url,json=shipConfirmPayload).json()
+     print(ship_confirm_data)
     # specificOrderPayload['token'] = token
     # print(specificOrderPayload)
     # specific_order = requests.post(ship_confirm_url_specific, json=specificOrderPayload)
@@ -61,5 +75,5 @@ celigoFlowPayload = {
 
 #print(requests.post(celigoUrl,json=celigoAuthPayload).json())
 #print(requests.post(celigoUrlExport,json=celigoExportPayload).json())
-print(requests.post(celigoUrlExport,json=celigoExportPayload).json())
+#print(requests.post(celigoUrlExport,json=celigoExportPayload).json())
 

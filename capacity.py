@@ -81,7 +81,7 @@ async def get_orders(data: CapacityShipmentConfirmation):
     tasks = []
     for date in dates:
         for i in range(1, data.max_batches + 1):
-            tasks.append(sub_get_confirmation_data(i, date, data, semaphore))
+            tasks.append(sub_get_confirmation_data(i, date, data, False, semaphore))
     results = await asyncio.gather(*tasks)
     finalArr = [result for result in results if len(result['orders']) > 0]
     return {
@@ -90,7 +90,23 @@ async def get_orders(data: CapacityShipmentConfirmation):
         'orders': finalArr
     }
 
-async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShipmentConfirmation, semaphore):
+@app.post("/getOrders/full")
+async def get_orders_full(data: CapacityShipmentConfirmation):
+    dates = get_date_range(data.start_date, data.end_date)
+    semaphore = asyncio.Semaphore(data.max_batches)
+    tasks = []
+    for date in dates:
+        for i in range(1, data.max_batches + 1):
+            tasks.append(sub_get_confirmation_data(i, date, data, True, semaphore))
+    results = await asyncio.gather(*tasks)
+    finalArr = [result for result in results if len(result['orders']) > 0]
+    return {
+        'start_date': data.start_date,
+        'end_date': data.end_date,
+        'orders': finalArr
+    }
+
+async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShipmentConfirmation, is_full_list, semaphore):
     async with semaphore:
         headers = {
             "Content-Type": "application/json",
@@ -102,16 +118,40 @@ async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShip
             "batch_date": batch_date
         })
         url = "https://api-integration.capacityllc.com/api/order/track"
-        #print(payload)
         async with aiohttp.ClientSession() as session:
             async with session.post(url, headers=headers, data=payload, ssl=False) as response:
                 body = await response.json()
-                orders = list(set(order['masterorderid'] for order in body.get('orderlist', [])))
-                return {
-                    "batch_date": batch_date,
-                    "batch_number": batch_number,
-                    "orders": orders
-                }
+                orders = []
+                short_shipped_orders = {}
+                is_short_shipped_orders_empty = False
+                if is_full_list:
+                    orders = body.get('orderlist', [])
+                else:
+                    full_orders = body.get('orderlist', [])
+                    orders = set()
+
+                    for order in full_orders:
+                        masterorderid = order['masterorderid'].replace('Sales Order #', '')
+                        orders.add(masterorderid)
+                        if order['capacityShippedQuantity'] == 0:
+                            if masterorderid not in short_shipped_orders:
+                                short_shipped_orders[masterorderid] = []
+                            short_shipped_orders[masterorderid].append(order['capacityProductID'])
+                    orders = list(orders)
+                    is_short_shipped_orders_empty = not bool(short_shipped_orders)
+                if is_short_shipped_orders_empty:
+                    return {
+                        "batch_date": batch_date,
+                        "batch_number": batch_number,
+                        "orders": orders
+                    }
+                else:
+                    return {
+                        "batch_date": batch_date,
+                        "batch_number": batch_number,
+                        "orders": orders,
+                        "short_shipped_orders": short_shipped_orders
+                    }
 
 @app.post("/getShipmentConfirmation/specific")
 async def get_specific_ship_confirm(data: CapacitySpecififOrderShipConfirm):
