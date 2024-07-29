@@ -1,5 +1,3 @@
-from collections import defaultdict
-
 from fastapi import FastAPI
 from pydantic import BaseModel
 from mangum import Mangum
@@ -8,7 +6,7 @@ import json
 import asyncio
 import aiohttp
 from datetime import datetime, timedelta
-from typing import List, Dict
+
 
 app = FastAPI()
 handler = Mangum(app)
@@ -17,12 +15,14 @@ class CapacityAuthentication(BaseModel):
     client_secret: str
     client_id: str
 
+
 class CapacityShipmentConfirmation(BaseModel):
     token: str
     key: str
     start_date: str
     end_date: str
     max_batches: int
+
 
 class CapacitySpecififOrderShipConfirm(BaseModel):
     key: str
@@ -31,31 +31,37 @@ class CapacitySpecififOrderShipConfirm(BaseModel):
     token: str
     order_number: str
 
+
 class CeligoAuthentication(BaseModel):
     token: str
     url: str
+
 
 class CeligoExport(BaseModel):
     params: CeligoAuthentication
     export_id: str
 
+
 class CeligoFlow(BaseModel):
     params: CeligoAuthentication
     flow_id: str
+
 
 class CeligoJob(BaseModel):
     params: CeligoAuthentication
     job_id: str
 
+
 @app.get("/")
 def index():
     return 'Ekwani API'
+
 
 @app.post("/getToken")
 def get_token(data: CapacityAuthentication):
     client_id = data.client_id
     client_secret = data.client_secret
-    url ="https://api-integration.capacityllc.com/token"
+    url = "https://api-integration.capacityllc.com/token"
     headers = {
         'Content-Type': 'application/json'
     }
@@ -64,7 +70,7 @@ def get_token(data: CapacityAuthentication):
         'client_id': client_id,
         'grant_type': 'client_credentials'
     }
-    body = requests.post(url,data=myjson).json()
+    body = requests.post(url, data=myjson).json()
     if "access_token" in body:
         return {
             'access_token': body['access_token']
@@ -73,6 +79,7 @@ def get_token(data: CapacityAuthentication):
         return {
             'access_token': ''
         }
+
 
 @app.post("/getOrders")
 async def get_orders(data: CapacityShipmentConfirmation):
@@ -90,6 +97,7 @@ async def get_orders(data: CapacityShipmentConfirmation):
         'orders': finalArr
     }
 
+
 @app.post("/getOrders/full")
 async def get_orders_full(data: CapacityShipmentConfirmation):
     dates = get_date_range(data.start_date, data.end_date)
@@ -106,7 +114,9 @@ async def get_orders_full(data: CapacityShipmentConfirmation):
         'orders': finalArr
     }
 
-async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShipmentConfirmation, is_full_list, semaphore):
+
+async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShipmentConfirmation, is_full_list,
+                                    semaphore):
     async with semaphore:
         headers = {
             "Content-Type": "application/json",
@@ -153,9 +163,9 @@ async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShip
                         "short_shipped_orders": short_shipped_orders
                     }
 
+
 @app.post("/getShipmentConfirmation/specific")
 async def get_specific_ship_confirm(data: CapacitySpecififOrderShipConfirm):
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {data.token}"
@@ -177,6 +187,7 @@ async def get_specific_ship_confirm(data: CapacitySpecififOrderShipConfirm):
                 "data": orders
             }
 
+
 def get_date_range(start_date, end_date):
     # Convert input strings to date objects
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
@@ -196,7 +207,6 @@ def get_date_range(start_date, end_date):
 
 @app.post("/testCeligoConnection")
 async def test_celigo_connection(data: CeligoAuthentication):
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {data.token}"
@@ -204,14 +214,14 @@ async def test_celigo_connection(data: CeligoAuthentication):
     url = data.url
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"{url}/connections", headers=headers,  ssl=False) as response:
+        async with session.get(f"{url}/connections", headers=headers, ssl=False) as response:
             return {
                 "data": "success" if response.status == 200 else "false"
             }
 
+
 @app.post("/runCeligoExport")
 async def run_celigo_export(data: CeligoExport):
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {data.params.token}"
@@ -219,7 +229,7 @@ async def run_celigo_export(data: CeligoExport):
     url = data.params.url
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(f"{url}/exports/{data.export_id}/invoke", headers=headers,  ssl=False) as response:
+        async with session.post(f"{url}/exports/{data.export_id}/invoke", headers=headers, ssl=False) as response:
             response_text = await response.text()
             try:
                 # Attempt to parse the response as JSON
@@ -258,9 +268,10 @@ async def run_celigo_export(data: CeligoExport):
                     "status": response.status,
                     "response": body
                 }
+
+
 @app.post("/runCeligoFlow")
 async def run_celigo_flow(data: CeligoFlow):
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {data.params.token}"
@@ -268,7 +279,7 @@ async def run_celigo_flow(data: CeligoFlow):
     url = data.params.url
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(f"{url}/flows/{data.flow_id}/run", headers=headers,  ssl=False) as response:
+        async with session.post(f"{url}/flows/{data.flow_id}/run", headers=headers, ssl=False) as response:
             body = await response.json()
             job_id = body.get('_jobId', None)
             errors = body.get('errors', None)
@@ -292,7 +303,6 @@ async def run_celigo_flow(data: CeligoFlow):
 
 @app.post("/getCeligoJobStatus")
 async def get_celigo_job_status(data: CeligoJob):
-
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {data.params.token}"
@@ -300,7 +310,7 @@ async def get_celigo_job_status(data: CeligoJob):
     url = data.params.url
 
     async with aiohttp.ClientSession() as session:
-        async with session.get(f"{url}/jobs/{data.job_id}", headers=headers,  ssl=False) as response:
+        async with session.get(f"{url}/jobs/{data.job_id}", headers=headers, ssl=False) as response:
             body = await response.json()
             status = body.get('status', None)
             if status is None:
