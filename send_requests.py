@@ -16,7 +16,7 @@ myjson = {
 shipConfirmPayload = {
     "key": "CD343BFA-3109-44D6-A4CE-63313F98B8C1",
     "start_date": "2024-07-01",
-    "end_date": "2024-07-30",
+    "end_date": "2024-07-01",
     "token": None,
     "max_batches": 24
 }
