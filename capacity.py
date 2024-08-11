@@ -23,6 +23,13 @@ class CapacityShipmentConfirmation(BaseModel):
     end_date: str
     max_batches: int
 
+class CapacityShipmentConfirmationBasic(BaseModel):
+    token: str
+    key: str
+    date: str
+    batch: int
+    is_full_list: bool
+
 
 class CapacitySpecififOrderShipConfirm(BaseModel):
     key: str
@@ -163,6 +170,54 @@ async def sub_get_confirmation_data(batch_number, batch_date, data: CapacityShip
                         "short_shipped_orders": short_shipped_orders
                     }
 
+
+@app.post("/getOrders/nonthread")
+async def get_confirmation_data_non_threaded(data: CapacityShipmentConfirmationBasic):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {data.token}"
+    }
+    payload = json.dumps({
+        "key": data.key,
+        "batch_num": data.batch,
+        "batch_date": data.date
+    })
+    print(payload)
+    url = "https://api-integration.capacityllc.com/api/order/track"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, data=payload, ssl=False) as response:
+            body = await response.json()
+            orders = []
+            short_shipped_orders = {}
+            is_short_shipped_orders_empty = False
+            if data.is_full_list:
+                orders = body.get('orderlist', [])
+            else:
+                full_orders = body.get('orderlist', [])
+                orders = set()
+
+                for order in full_orders:
+                    masterorderid = order['masterorderid'].replace('Sales Order #', '')
+                    orders.add(masterorderid)
+                    if order['capacityShippedQuantity'] == 0:
+                        if masterorderid not in short_shipped_orders:
+                            short_shipped_orders[masterorderid] = []
+                        short_shipped_orders[masterorderid].append(order['capacityProductID'])
+                orders = list(orders)
+                is_short_shipped_orders_empty = not bool(short_shipped_orders)
+            if is_short_shipped_orders_empty:
+                return {
+                    "batch_date": data.date,
+                    "batch_number": data.batch,
+                    "orders": orders
+                }
+            else:
+                return {
+                    "batch_date": data.date,
+                    "batch_number": data.batch,
+                    "orders": orders,
+                    "short_shipped_orders": short_shipped_orders
+                }
 
 @app.post("/getShipmentConfirmation/specific")
 async def get_specific_ship_confirm(data: CapacitySpecififOrderShipConfirm):

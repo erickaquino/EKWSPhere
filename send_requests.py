@@ -7,10 +7,19 @@ celigoUrlFlow = 'http://127.0.0.1:8000/runCeligoFlow'
 url ="http://127.0.0.1:8000/getToken"
 ship_confirm_url = "http://127.0.0.1:8000/getOrders"
 ship_confirm_url_specific = "http://127.0.0.1:8000/getShipmentConfirmation/specific"
+ship_confirm_url_no_thread = "http://127.0.0.1:8000/getOrders/nonthread"
 
 myjson = {
     'client_secret': 'fqju**J@U)N^d}`q8tQ',
     'client_id': 'juststeven.capacity.client'
+}
+
+shipConfirmPayloadBasic = {
+    "key": "CD343BFA-3109-44D6-A4CE-63313F98B8C1",
+    "date": "2024-08-01",
+    "token": None,
+    "batch": 12,
+    "is_full_list": False
 }
 
 shipConfirmPayload = {
@@ -68,9 +77,9 @@ token = requests.post(url,json=myjson).json()['access_token']
 print(token)
 
 if token != "":
-     shipConfirmPayload['token'] = token
-    # print(shipConfirmPayload)
-     ship_confirm_data = requests.post(ship_confirm_url,json=shipConfirmPayload).json()
+     shipConfirmPayloadBasic['token'] = token
+     #print(shipConfirmPayload)
+     ship_confirm_data = requests.post(ship_confirm_url_no_thread,json=shipConfirmPayloadBasic).json()
      print(ship_confirm_data)
     # specificOrderPayload['token'] = token
     # print(specificOrderPayload)
